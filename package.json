@@ -1,0 +1,17 @@
+{
+  "name": "pims",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev:entry": "pnpm --filter @pims/entry dev",
+    "dev:reporting": "pnpm --filter @pims/reporting dev",
+    "build": "pnpm --filter @pims/db build && pnpm -r --filter=./apps/* build",
+    "db:generate": "pnpm --filter @pims/db exec prisma generate",
+    "db:migrate": "pnpm --filter @pims/db exec prisma migrate dev",
+    "db:seed": "pnpm --filter @pims/db exec tsx prisma/seed.ts",
+    "db:studio": "pnpm --filter @pims/db exec prisma studio"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

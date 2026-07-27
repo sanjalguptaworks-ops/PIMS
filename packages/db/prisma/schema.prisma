@@ -1,0 +1,723 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Org hierarchy: Company -> Project -> LineLoop -> Spread
+// ---------------------------------------------------------------------------
+
+enum CompanyType {
+  CLIENT
+  CONTRACTOR
+}
+
+model Company {
+  id        String      @id @default(cuid())
+  name      String
+  type      CompanyType
+  createdAt DateTime    @default(now())
+
+  users            User[]
+  wpsList          WPS[]
+  welders          Welder[]
+  inspectors       Inspector[]
+  coaters          CoaterQualification[]
+  splicers         Splicer[]
+  electrodes       Electrode[]
+  clientProjects   Project[]             @relation("ClientCompany")
+}
+
+model Project {
+  id              String   @id @default(cuid())
+  name            String
+  clientCompanyId String
+  clientCompany   Company  @relation("ClientCompany", fields: [clientCompanyId], references: [id])
+  createdAt       DateTime @default(now())
+
+  lineLoops LineLoop[]
+  members   ProjectMember[]
+}
+
+model LineLoop {
+  id        String   @id @default(cuid())
+  name      String
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+  createdAt DateTime @default(now())
+
+  spreads Spread[]
+
+  @@unique([projectId, name])
+}
+
+model Spread {
+  id         String   @id @default(cuid())
+  name       String
+  lineLoopId String
+  lineLoop   LineLoop @relation(fields: [lineLoopId], references: [id])
+  createdAt  DateTime @default(now())
+
+  wpsList             WPS[]
+  pipes                Pipe[]
+  welds                Weld[]
+  alignmentSheets      AlignmentSheet[]
+  lineWallThicknesses  LineWallThickness[]
+  lineCrossings        LineCrossing[]
+  tpIps                TPIP[]
+  reRoutings           ReRouting[]
+  trenchDepths         TrenchDepth[]
+  hydrotestSections    HydrotestSection[]
+  dispatchRegisters    MaterialDispatchRegister[]
+  receiptRegisters     MaterialReceiptRegister[]
+  damageInspections    MaterialDamageInspection[]
+  returnRegisters      MaterialReturnRegister[]
+  activityRecords      ActivityRecord[]
+  cutItems             CutItem[]
+
+  @@unique([lineLoopId, name])
+}
+
+// ---------------------------------------------------------------------------
+// Users & roles
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  CLIENT
+  CONTRACTOR_ADMIN
+  ENTRY_USER
+  REPORTING_USER
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  email        String?  @unique
+  passwordHash String
+  name         String
+  role         UserRole
+  companyId    String?
+  company      Company? @relation(fields: [companyId], references: [id])
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  projectMemberships ProjectMember[]
+}
+
+model ProjectMember {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id])
+
+  @@unique([userId, projectId])
+}
+
+// ---------------------------------------------------------------------------
+// Master data
+// ---------------------------------------------------------------------------
+
+model WPS {
+  id                    String   @id @default(cuid())
+  wpsNo                 String
+  companyId             String
+  company               Company  @relation(fields: [companyId], references: [id])
+  spreadId              String
+  spread                Spread   @relation(fields: [spreadId], references: [id])
+  weldingProgression    String?
+  weldingProcess        String?
+  jointVersionGroup     String?
+  jointTypeGroup        String?
+  diameterFrom          Float?
+  diameterTo            Float?
+  wallThicknessFrom     Float?
+  wallThicknessTo       Float?
+  materialGradeFrom     String?
+  materialGradeTo       String?
+  pipeVendorFrom        String?
+  pipeVendorTo          String?
+  steelMillVendorFrom   String?
+  steelMillVendorTo     String?
+  noOfWelders           Int?
+  createdAt             DateTime @default(now())
+
+  welderQualifications WelderQualification[]
+  welds                Weld[]
+
+  @@unique([spreadId, wpsNo])
+}
+
+model Welder {
+  id            String   @id @default(cuid())
+  companyId     String
+  company       Company  @relation(fields: [companyId], references: [id])
+  welderCode    String
+  name          String
+  stampNo       String?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  qualifications   WelderQualification[]
+  weldAssignments  WeldWelder[]
+  ndtDefects       NDTDefect[]
+
+  @@unique([companyId, welderCode])
+}
+
+model WelderQualification {
+  id           String    @id @default(cuid())
+  welderId     String
+  welder       Welder    @relation(fields: [welderId], references: [id])
+  wpsId        String?
+  wps          WPS?      @relation(fields: [wpsId], references: [id])
+  qualifiedDate DateTime?
+  expiryDate    DateTime?
+  result        String?
+  createdAt     DateTime  @default(now())
+}
+
+model Inspector {
+  id               String   @id @default(cuid())
+  companyId        String
+  company          Company  @relation(fields: [companyId], references: [id])
+  name             String
+  certificationNo  String?
+  active           Boolean  @default(true)
+}
+
+model CoaterQualification {
+  id            String   @id @default(cuid())
+  companyId     String
+  company       Company  @relation(fields: [companyId], references: [id])
+  name          String
+  qualifiedDate DateTime?
+  expiryDate    DateTime?
+}
+
+model Splicer {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+  name      String
+}
+
+model Electrode {
+  id             String   @id @default(cuid())
+  companyId      String
+  company        Company  @relation(fields: [companyId], references: [id])
+  type           String
+  size           String?
+  classification String?
+
+  batches ElectrodeBatch[]
+}
+
+model ElectrodeBatch {
+  id            String    @id @default(cuid())
+  electrodeId   String
+  electrode     Electrode @relation(fields: [electrodeId], references: [id])
+  batchNo       String
+  heatNo        String?
+  receivedDate  DateTime?
+  qtyReceived   Float?
+  qtyConsumed   Float     @default(0)
+
+  weldUsages WeldElectrode[]
+}
+
+model AlignmentSheet {
+  id          String  @id @default(cuid())
+  spreadId    String
+  spread      Spread  @relation(fields: [spreadId], references: [id])
+  sheetNo     String
+  description String?
+
+  @@unique([spreadId, sheetNo])
+}
+
+model LineWallThickness {
+  id            String  @id @default(cuid())
+  spreadId      String
+  spread        Spread  @relation(fields: [spreadId], references: [id])
+  stationFrom   Float
+  stationTo     Float
+  wallThickness Float
+}
+
+model LineCrossing {
+  id          String  @id @default(cuid())
+  spreadId    String
+  spread      Spread  @relation(fields: [spreadId], references: [id])
+  crossingNo  String
+  type        String?
+  stationFrom Float?
+  stationTo   Float?
+}
+
+model TPIP {
+  id          String  @id @default(cuid())
+  spreadId    String
+  spread      Spread  @relation(fields: [spreadId], references: [id])
+  tpNo        String?
+  ipNo        String?
+  description String?
+}
+
+model ReRouting {
+  id          String  @id @default(cuid())
+  spreadId    String
+  spread      Spread  @relation(fields: [spreadId], references: [id])
+  description String?
+  stationFrom Float?
+  stationTo   Float?
+}
+
+model TrenchDepth {
+  id             String @id @default(cuid())
+  spreadId       String
+  spread         Spread @relation(fields: [spreadId], references: [id])
+  stationFrom    Float
+  stationTo      Float
+  requiredDepth  Float
+}
+
+model HydrotestSection {
+  id           String  @id @default(cuid())
+  spreadId     String
+  spread       Spread  @relation(fields: [spreadId], references: [id])
+  sectionNo    String
+  stationFrom  Float?
+  stationTo    Float?
+  testPressure Float?
+}
+
+// ---------------------------------------------------------------------------
+// Pipe inventory (physical joints), with parent/child cut lineage
+// ---------------------------------------------------------------------------
+
+enum PipeStatus {
+  IN_STOCK
+  STRUNG
+  WELDED
+  CUT
+  SCRAPPED
+}
+
+model Pipe {
+  id             String     @id @default(cuid())
+  pipeNo         String
+  displayPipeNo  String?
+  parentPipeId   String?
+  parentPipe     Pipe?      @relation("PipeLineage", fields: [parentPipeId], references: [id])
+  childPipes     Pipe[]     @relation("PipeLineage")
+  spreadId       String
+  spread         Spread     @relation(fields: [spreadId], references: [id])
+  heatNo         String?
+  length         Float?
+  diameter       Float?
+  wallThickness  Float?
+  coatingNo      String?
+  bendDegree1    Float?
+  bendDegree2    Float?
+  bendTypeName1  String?
+  bendTypeName2  String?
+  coilNo         String?
+  isScrap        Boolean    @default(false)
+  status         PipeStatus @default(IN_STOCK)
+  stationChainage Float?
+  createdAt      DateTime   @default(now())
+
+  weldsAsUpstream   Weld[]     @relation("UpstreamPipe")
+  weldsAsDownstream Weld[]     @relation("DownstreamPipe")
+  cutItemsAsParent  CutItem[]
+
+  @@unique([spreadId, pipeNo])
+}
+
+model CutItem {
+  id                String   @id @default(cuid())
+  spreadId          String
+  spread            Spread   @relation(fields: [spreadId], references: [id])
+  parentPipeId      String
+  parentPipe        Pipe     @relation(fields: [parentPipeId], references: [id])
+  parentItemLength  Float?
+  diameter          Float?
+  wallThickness     Float?
+  heatNo            String?
+  reportNumber      String?
+  reportDate        DateTime?
+  remarks           String?
+  createdAt         DateTime @default(now())
+
+  childItems ChildItem[]
+}
+
+model ChildItem {
+  id                     String  @id @default(cuid())
+  cutItemId              String
+  cutItem                CutItem @relation(fields: [cutItemId], references: [id])
+  childItemNumber        String
+  displayChildItemNumber String?
+  length                 Float?
+  originalBevel          Boolean @default(true)
+  isBend                 Boolean @default(false)
+  isScrap                Boolean @default(false)
+}
+
+// ---------------------------------------------------------------------------
+// Weld (the core traceability entity)
+// ---------------------------------------------------------------------------
+
+enum VisualCheckResult {
+  OK
+  NOT_OK
+}
+
+model Weld {
+  id                     String   @id @default(cuid())
+  spreadId               String
+  spread                 Spread   @relation(fields: [spreadId], references: [id])
+  jointNumber             String
+  jointSuffix             String?
+  compositeJointNo        String?
+  displayCompositeJointNo String?
+  routingSectionLength    Float?
+  sequenceNumber          Int?
+  tentativeChainage       Float?
+  weldSequenceNo          String?
+  activityCount           Int      @default(0)
+  isWeldingEntered        Boolean  @default(false)
+
+  upstreamPipeId   String?
+  upstreamPipe     Pipe?    @relation("UpstreamPipe", fields: [upstreamPipeId], references: [id])
+  downstreamPipeId String?
+  downstreamPipe   Pipe?    @relation("DownstreamPipe", fields: [downstreamPipeId], references: [id])
+
+  wpsId    String?
+  wps      WPS?    @relation(fields: [wpsId], references: [id])
+
+  weldType      String?
+  weldVersion   String?
+  weldPosition  String?
+  weldDirection String?
+  reRoutingRef  String?
+
+  visualCheck     VisualCheckResult?
+  productionWeld  Boolean            @default(true)
+  coordX          Float?
+  coordY          Float?
+  coordZ          Float?
+  preHeating      String?
+  interpassTemp   String?
+  gaugingDone     Boolean?
+  swabbingDone    Boolean?
+  backweldDone    Boolean?
+  backweldLocation String?
+  backweldLength   Float?
+
+  reportNumber String?
+  reportDate   DateTime?
+  milePost     String?
+  weatherCondition String?
+  remarks      String?
+  createdById  String?
+  createdAt    DateTime @default(now())
+
+  welders    WeldWelder[]
+  electrodes WeldElectrode[]
+  ndtResults NDTResult[]
+
+  @@unique([spreadId, jointNumber, jointSuffix])
+}
+
+model WeldWelder {
+  id       String @id @default(cuid())
+  weldId   String
+  weld     Weld   @relation(fields: [weldId], references: [id])
+  welderId String
+  welder   Welder @relation(fields: [welderId], references: [id])
+
+  @@unique([weldId, welderId])
+}
+
+model WeldElectrode {
+  id               String         @id @default(cuid())
+  weldId           String
+  weld             Weld           @relation(fields: [weldId], references: [id])
+  electrodeBatchId String
+  electrodeBatch   ElectrodeBatch @relation(fields: [electrodeBatchId], references: [id])
+
+  @@unique([weldId, electrodeBatchId])
+}
+
+// ---------------------------------------------------------------------------
+// NDT (X-Ray / MUT / LPT — shared shape)
+// ---------------------------------------------------------------------------
+
+enum NDTMethod {
+  XRAY
+  WELD_MUT
+  WELD_LPT
+  PIPE_MUT
+  PIPE_LPT
+}
+
+enum NDTOverallResult {
+  ACCEPT
+  NOT_ACCEPT
+}
+
+model NDTResult {
+  id             String           @id @default(cuid())
+  weldId         String
+  weld           Weld             @relation(fields: [weldId], references: [id])
+  method         NDTMethod
+  reportNumber   String?
+  reportDate     DateTime?
+  overallResult  NDTOverallResult?
+  locationTaken  String?
+  locationResult String?
+  createdAt      DateTime         @default(now())
+
+  quadrants NDTQuadrant[]
+  defects   NDTDefect[]
+}
+
+model NDTQuadrant {
+  id              String    @id @default(cuid())
+  ndtResultId     String
+  ndtResult       NDTResult @relation(fields: [ndtResultId], references: [id])
+  srNo            Int
+  degreeFrom      Float
+  degreeTo        Float
+  jointSectionFrom Float?
+  jointSectionTo   Float?
+  locationResult   String?
+}
+
+model NDTDefect {
+  id               String    @id @default(cuid())
+  ndtResultId      String
+  ndtResult        NDTResult @relation(fields: [ndtResultId], references: [id])
+  defLocationFrom  Float?
+  defLocationTo    Float?
+  defectLength     Float?
+  result           String?
+  defectType       String?
+  defectWelderId   String?
+  defectWelder     Welder?   @relation(fields: [defectWelderId], references: [id])
+  depth            Float?
+  defectLayer      String?
+  defectHeight     Float?
+  remarks          String?
+}
+
+// ---------------------------------------------------------------------------
+// Materials zone: Dispatch / Receipt / Damage Inspection / Return
+// ---------------------------------------------------------------------------
+
+model MaterialDispatchRegister {
+  id                     String   @id @default(cuid())
+  spreadId               String
+  spread                 Spread   @relation(fields: [spreadId], references: [id])
+  voucherNumber          String
+  issueDate              DateTime?
+  element                String?
+  inspectorName          String?
+  vehicleNumber          String?
+  outboundConformance    String?
+  stationFrom            String?
+  stationTo              String?
+  remarks                String?
+  createdAt              DateTime @default(now())
+
+  items MaterialDispatchItem[]
+
+  @@unique([spreadId, voucherNumber])
+}
+
+model MaterialDispatchItem {
+  id            String                    @id @default(cuid())
+  registerId    String
+  register      MaterialDispatchRegister  @relation(fields: [registerId], references: [id])
+  itemNumber    String
+  heatNo        String?
+  length        Float?
+  wallThickness Float?
+  diameter      Float?
+  remarks       String?
+}
+
+model MaterialReceiptRegister {
+  id                  String   @id @default(cuid())
+  spreadId            String
+  spread              Spread   @relation(fields: [spreadId], references: [id])
+  voucherNumber       String
+  receiveDate         DateTime?
+  element             String?
+  inspectorName       String?
+  vehicleNumber       String?
+  inboundConformance  String?
+  stationFrom         String?
+  stationTo           String?
+  itemCategory        String?
+  remarks             String?
+  createdAt           DateTime @default(now())
+
+  items MaterialReceiptItem[]
+
+  @@unique([spreadId, voucherNumber])
+}
+
+model MaterialReceiptItem {
+  id                 String                   @id @default(cuid())
+  registerId         String
+  register           MaterialReceiptRegister  @relation(fields: [registerId], references: [id])
+  itemNumber         String
+  heatNo             String?
+  length             Float?
+  wallThickness      Float?
+  diameter           Float?
+  goodsReceiptNumber String?
+  receivedStatus     String?
+  damageType         String?
+  damageSize         String?
+  locationNumber     String?
+  damagedBy          String?
+  detailRemarks      String?
+}
+
+model MaterialDamageInspection {
+  id               String   @id @default(cuid())
+  spreadId         String
+  spread           Spread   @relation(fields: [spreadId], references: [id])
+  receivingLocation String?
+  materialReportNo String?
+  issueDate        DateTime?
+  inspectorName    String?
+  createdAt        DateTime @default(now())
+
+  items MaterialDamageInspectionItem[]
+}
+
+model MaterialDamageInspectionItem {
+  id             String                    @id @default(cuid())
+  inspectionId   String
+  inspection     MaterialDamageInspection  @relation(fields: [inspectionId], references: [id])
+  itemNumber     String
+  heatNo         String?
+  length         Float?
+  wallThickness  Float?
+  diameter       Float?
+  coatingVisual  Boolean?
+  bevelStatus    Boolean?
+  receivedStatus String?
+  damagedBy      String?
+  remarks        String?
+}
+
+model MaterialReturnRegister {
+  id                  String   @id @default(cuid())
+  spreadId            String
+  spread              Spread   @relation(fields: [spreadId], references: [id])
+  voucherNumber       String
+  returnDate          DateTime?
+  element             String?
+  inspectorName       String?
+  vehicleNumber       String?
+  outboundConformance String?
+  stationFrom         String?
+  stationTo           String?
+  remarks             String?
+  createdAt           DateTime @default(now())
+
+  items MaterialReturnItem[]
+
+  @@unique([spreadId, voucherNumber])
+}
+
+model MaterialReturnItem {
+  id            String                  @id @default(cuid())
+  registerId    String
+  register      MaterialReturnRegister  @relation(fields: [registerId], references: [id])
+  itemNumber    String
+  heatNo        String?
+  length        Float?
+  wallThickness Float?
+  diameter      Float?
+  remarks       String?
+}
+
+// ---------------------------------------------------------------------------
+// Generic field-activity reports: Pre-Welding + Post-Welding zones
+// (Route Survey, ROW, Clearing & Grading, Trenching, Stringing, Bending,
+//  As-Built Survey, Joint Coating, Lowering, Backfilling, Tie-in, Hydrotest, ...)
+// Shared header/shell fields are typed; the long tail of activity-specific
+// fields lives in `details` (JSON) so new activity types don't need a migration.
+// ---------------------------------------------------------------------------
+
+enum ActivityType {
+  ROUTE_SURVEY
+  ROW_HANDOVER
+  CLEARING_GRADING
+  TRENCHING
+  STRINGING
+  BENDING
+  AS_BUILT_SURVEY
+  WELD_REPAIR
+  JOINT_COATING
+  MARKER_INSTALLATION
+  LOWERING
+  OFC_SPLICING_JOINTING
+  BACKFILLING
+  HDPE_DUCT_LAYING
+  RESTORATION
+  PRE_HYDROTEST
+  TEMPORARY_CATHODIC_PROTECTION
+  HYDROTEST_REPORT
+  CLEANING_GAUGING
+  SWABBING_DEWATERING
+  MAGNETIC_CLEANING
+  EGP
+  OFC_BLOWING
+  OFC_JOINT_PITS
+  NITROGEN_PURGING
+  HDD_CROSSING
+}
+
+model ActivityRecord {
+  id               String       @id @default(cuid())
+  spreadId         String
+  spread           Spread       @relation(fields: [spreadId], references: [id])
+  activityType     ActivityType
+  reportNumber     String?
+  reportDate       DateTime?
+  pageNumber       Int          @default(1)
+  weatherCondition String?
+  milePost         String?
+  downStream       Boolean      @default(false)
+  rfiNumber        String?
+  stationFrom      Float?
+  stationTo        Float?
+  sectionLength    Float?
+  remarks          String?
+  details          Json?
+  createdById      String?
+  createdAt        DateTime     @default(now())
+
+  files ActivityFile[]
+}
+
+model ActivityFile {
+  id               String         @id @default(cuid())
+  activityRecordId String
+  activityRecord   ActivityRecord @relation(fields: [activityRecordId], references: [id])
+  fileName         String
+  fileUrl          String
+  createdAt        DateTime       @default(now())
+}
