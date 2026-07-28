@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import Sidebar from "@/components/Sidebar";
 
 // Every route under this group reads the session/spread cookies via requireAuth()/
 // requireSpread(). Force dynamic rendering so Next never caches a Server Action's
@@ -10,7 +11,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Header />
-      <main className="flex-1 p-4">{children}</main>
+      <div className="flex-1 flex">
+        <Sidebar />
+        <main className="flex-1 p-4 min-w-0">{children}</main>
+      </div>
     </>
   );
 }
