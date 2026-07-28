@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import * as XLSX from "xlsx";
 import { prisma } from "@pims/db";
-import { requireAuth } from "@/lib/require-auth";
+import { requireAdmin } from "@/lib/require-auth";
 import { requireSpread } from "@/lib/spread";
 
 export type UploadResult = { inserted: number; skipped: number; errors: string[] };
@@ -19,7 +19,7 @@ const str = (v: unknown): string | null => {
 };
 
 export async function uploadPipesAction(_prev: UploadResult, formData: FormData): Promise<UploadResult> {
-  await requireAuth();
+  await requireAdmin();
   const spread = await requireSpread();
 
   const file = formData.get("file") as File | null;
@@ -71,7 +71,7 @@ export async function uploadPipesAction(_prev: UploadResult, formData: FormData)
 }
 
 export async function createPipeAction(formData: FormData) {
-  await requireAuth();
+  await requireAdmin();
   const spread = await requireSpread();
 
   await prisma.pipe.create({

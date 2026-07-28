@@ -235,6 +235,31 @@ model Electrode {
   batches ElectrodeBatch[]
 }
 
+model Vendor {
+  id        String   @id @default(cuid())
+  name      String
+  code      String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  purchaseOrders PurchaseOrder[]
+  pipes          Pipe[]
+
+  @@unique([name])
+}
+
+model PurchaseOrder {
+  id        String   @id @default(cuid())
+  poNumber  String
+  vendorId  String
+  vendor    Vendor   @relation(fields: [vendorId], references: [id])
+  createdAt DateTime @default(now())
+
+  pipes Pipe[]
+
+  @@unique([vendorId, poNumber])
+}
+
 model ElectrodeBatch {
   id            String    @id @default(cuid())
   electrodeId   String
@@ -348,6 +373,12 @@ model Pipe {
   isScrap        Boolean    @default(false)
   status         PipeStatus @default(IN_STOCK)
   stationChainage Float?
+  vendorId        String?
+  vendor          Vendor?        @relation(fields: [vendorId], references: [id])
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+  itemCategory    String?
+  ptsDetails      Json?
   createdAt      DateTime   @default(now())
 
   weldsAsUpstream   Weld[]     @relation("UpstreamPipe")

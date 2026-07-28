@@ -2,10 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@pims/db";
-import { requireAuth } from "@/lib/require-auth";
+import { requireAdmin } from "@/lib/require-auth";
 
 export async function createElectrodeAction(formData: FormData) {
-  await requireAuth();
+  await requireAdmin();
   await prisma.electrode.create({
     data: {
       companyId: String(formData.get("companyId")),

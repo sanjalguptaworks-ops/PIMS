@@ -1,10 +1,12 @@
 import { prisma } from "@pims/db";
+import { isAdminRole } from "@pims/auth";
 import { requireAuth } from "@/lib/require-auth";
 import { Field, SelectField } from "@/components/FormFields";
 import { createWelderAction, createInspectorAction } from "./actions";
 
 export default async function WeldersPage() {
-  await requireAuth();
+  const session = await requireAuth();
+  const canCreate = isAdminRole(session.role);
 
   const [welders, inspectors, companies] = await Promise.all([
     prisma.welder.findMany({ include: { company: true }, orderBy: { welderCode: "asc" } }),
@@ -19,20 +21,24 @@ export default async function WeldersPage() {
       <h1 className="text-lg font-semibold">Manage Welders</h1>
 
       <section className="space-y-2">
-        <details className="card">
-          <summary className="section-title cursor-pointer select-none">+ Add Welder</summary>
-          <form action={createWelderAction} className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <SelectField label="Company" name="companyId" required options={companyOptions} />
-            <Field label="Welder Code" name="welderCode" required />
-            <Field label="Name" name="name" required />
-            <Field label="Stamp No" name="stampNo" />
-            <div className="lg:col-span-4">
-              <button type="submit" className="btn-primary">
-                Save Welder
-              </button>
-            </div>
-          </form>
-        </details>
+        {canCreate ? (
+          <details className="card">
+            <summary className="section-title cursor-pointer select-none">+ Add Welder</summary>
+            <form action={createWelderAction} className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <SelectField label="Company" name="companyId" required options={companyOptions} />
+              <Field label="Welder Code" name="welderCode" required />
+              <Field label="Name" name="name" required />
+              <Field label="Stamp No" name="stampNo" />
+              <div className="lg:col-span-4">
+                <button type="submit" className="btn-primary">
+                  Save Welder
+                </button>
+              </div>
+            </form>
+          </details>
+        ) : (
+          <p className="text-xs text-slate-500">Only Client and Contractor Admin users can add Master Data records.</p>
+        )}
 
         <div className="card overflow-x-auto">
           <table className="data-table">
@@ -68,19 +74,23 @@ export default async function WeldersPage() {
       </section>
 
       <section className="space-y-2">
-        <details className="card">
-          <summary className="section-title cursor-pointer select-none">+ Add Inspector</summary>
-          <form action={createInspectorAction} className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <SelectField label="Company" name="companyId" required options={companyOptions} />
-            <Field label="Name" name="name" required />
-            <Field label="Certification No" name="certificationNo" />
-            <div className="lg:col-span-4">
-              <button type="submit" className="btn-primary">
-                Save Inspector
-              </button>
-            </div>
-          </form>
-        </details>
+        {canCreate ? (
+          <details className="card">
+            <summary className="section-title cursor-pointer select-none">+ Add Inspector</summary>
+            <form action={createInspectorAction} className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <SelectField label="Company" name="companyId" required options={companyOptions} />
+              <Field label="Name" name="name" required />
+              <Field label="Certification No" name="certificationNo" />
+              <div className="lg:col-span-4">
+                <button type="submit" className="btn-primary">
+                  Save Inspector
+                </button>
+              </div>
+            </form>
+          </details>
+        ) : (
+          <p className="text-xs text-slate-500">Only Client and Contractor Admin users can add Master Data records.</p>
+        )}
 
         <div className="card overflow-x-auto">
           <table className="data-table">

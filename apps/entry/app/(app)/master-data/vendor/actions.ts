@@ -4,13 +4,13 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@pims/db";
 import { requireAdmin } from "@/lib/require-auth";
 
-export async function createSplicerAction(formData: FormData) {
+export async function createVendorAction(formData: FormData) {
   await requireAdmin();
-  await prisma.splicer.create({
+  await prisma.vendor.create({
     data: {
-      companyId: String(formData.get("companyId")),
       name: String(formData.get("name")),
+      code: String(formData.get("code") ?? "") || null,
     },
   });
-  revalidatePath("/master-data/splicer");
+  revalidatePath("/master-data/vendor");
 }

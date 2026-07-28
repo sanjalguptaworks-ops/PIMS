@@ -1,10 +1,12 @@
 import { prisma } from "@pims/db";
+import { isAdminRole } from "@pims/auth";
 import { requireAuth } from "@/lib/require-auth";
 import { Field, SelectField } from "@/components/FormFields";
 import { createCoaterQualificationAction } from "./actions";
 
 export default async function CoaterQualificationPage() {
-  await requireAuth();
+  const session = await requireAuth();
+  const canCreate = isAdminRole(session.role);
 
   const [records, companies] = await Promise.all([
     prisma.coaterQualification.findMany({ include: { company: true }, orderBy: { name: "asc" } }),
@@ -17,6 +19,7 @@ export default async function CoaterQualificationPage() {
       <h1 className="text-lg font-semibold">Coater Qualification</h1>
 
       <section className="space-y-2">
+        {canCreate ? (
         <details className="card">
           <summary className="section-title cursor-pointer select-none">+ Add Coater Qualification</summary>
           <form action={createCoaterQualificationAction} className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -29,6 +32,9 @@ export default async function CoaterQualificationPage() {
             </div>
           </form>
         </details>
+        ) : (
+          <p className="text-xs text-slate-500">Only Client and Contractor Admin users can add Master Data records.</p>
+        )}
 
         <div className="card overflow-x-auto">
           <table className="data-table">

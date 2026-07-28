@@ -3,10 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@pims/db";
 import { requireSpread } from "@/lib/spread";
-import { requireAuth } from "@/lib/require-auth";
+import { requireAdmin } from "@/lib/require-auth";
 
 export async function createWpsAction(formData: FormData) {
-  await requireAuth();
+  await requireAdmin();
   const spread = await requireSpread();
 
   const num = (name: string) => {

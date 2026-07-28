@@ -2,10 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@pims/db";
-import { requireAuth } from "@/lib/require-auth";
+import { requireAdmin } from "@/lib/require-auth";
 
 export async function createWelderAction(formData: FormData) {
-  await requireAuth();
+  await requireAdmin();
   await prisma.welder.create({
     data: {
       companyId: String(formData.get("companyId")),
@@ -18,7 +18,7 @@ export async function createWelderAction(formData: FormData) {
 }
 
 export async function createInspectorAction(formData: FormData) {
-  await requireAuth();
+  await requireAdmin();
   await prisma.inspector.create({
     data: {
       companyId: String(formData.get("companyId")),

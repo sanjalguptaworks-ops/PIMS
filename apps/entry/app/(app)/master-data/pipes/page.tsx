@@ -1,4 +1,5 @@
 import { prisma } from "@pims/db";
+import { isAdminRole } from "@pims/auth";
 import { requireAuth } from "@/lib/require-auth";
 import { requireSpread } from "@/lib/spread";
 import { Field } from "@/components/FormFields";
@@ -12,7 +13,8 @@ export default async function PipesPage({
 }: {
   searchParams: Promise<{ q?: string; page?: string }>;
 }) {
-  await requireAuth();
+  const session = await requireAuth();
+  const canCreate = isAdminRole(session.role);
   const spread = await requireSpread();
   const { q = "", page: pageStr = "1" } = await searchParams;
   const page = Math.max(1, Number(pageStr) || 1);
@@ -51,29 +53,35 @@ export default async function PipesPage({
         </p>
       </div>
 
-      <details className="card">
-        <summary className="section-title cursor-pointer select-none">Upload Pipe Details (Bulk)</summary>
-        <UploadPipesForm />
-      </details>
+      {canCreate ? (
+        <>
+          <details className="card">
+            <summary className="section-title cursor-pointer select-none">Upload Pipe Details (Bulk)</summary>
+            <UploadPipesForm />
+          </details>
 
-      <details className="card">
-        <summary className="section-title cursor-pointer select-none">+ Add Single Pipe</summary>
-        <form action={createPipeAction} className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <Field label="Pipe No" name="pipeNo" required />
-          <Field label="Display Pipe No" name="displayPipeNo" />
-          <Field label="Heat No" name="heatNo" />
-          <Field label="Length" name="length" type="number" step="any" />
-          <Field label="Diameter" name="diameter" type="number" step="any" />
-          <Field label="Wall Thickness" name="wallThickness" type="number" step="any" />
-          <Field label="Coating No" name="coatingNo" />
-          <Field label="Coil No" name="coilNo" />
-          <div className="lg:col-span-4">
-            <button type="submit" className="btn-primary">
-              Save Pipe
-            </button>
-          </div>
-        </form>
-      </details>
+          <details className="card">
+            <summary className="section-title cursor-pointer select-none">+ Add Single Pipe</summary>
+            <form action={createPipeAction} className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <Field label="Pipe No" name="pipeNo" required />
+              <Field label="Display Pipe No" name="displayPipeNo" />
+              <Field label="Heat No" name="heatNo" />
+              <Field label="Length" name="length" type="number" step="any" />
+              <Field label="Diameter" name="diameter" type="number" step="any" />
+              <Field label="Wall Thickness" name="wallThickness" type="number" step="any" />
+              <Field label="Coating No" name="coatingNo" />
+              <Field label="Coil No" name="coilNo" />
+              <div className="lg:col-span-4">
+                <button type="submit" className="btn-primary">
+                  Save Pipe
+                </button>
+              </div>
+            </form>
+          </details>
+        </>
+      ) : (
+        <p className="text-xs text-slate-500">Only Client and Contractor Admin users can add Master Data records.</p>
+      )}
 
       <div className="card">
         <form className="section-title flex items-center justify-between gap-2" action="/master-data/pipes">

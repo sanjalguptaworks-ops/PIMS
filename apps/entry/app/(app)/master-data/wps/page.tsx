@@ -1,4 +1,5 @@
 import { prisma } from "@pims/db";
+import { isAdminRole } from "@pims/auth";
 import { requireAuth } from "@/lib/require-auth";
 import { requireSpread } from "@/lib/spread";
 import { Field, SelectField } from "@/components/FormFields";
@@ -7,7 +8,8 @@ import { createWpsAction } from "./actions";
 export const dynamic = "force-dynamic";
 
 export default async function WpsPage() {
-  await requireAuth();
+  const session = await requireAuth();
+  const canCreate = isAdminRole(session.role);
   const spread = await requireSpread();
 
   const [wpsList, companies] = await Promise.all([
@@ -26,33 +28,37 @@ export default async function WpsPage() {
         <p className="text-sm text-slate-500">{spread.lineLoop.name} / {spread.name}</p>
       </div>
 
-      <details className="card">
-        <summary className="section-title cursor-pointer select-none">+ Add WPS</summary>
-        <form action={createWpsAction} className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <Field label="WPS No" name="wpsNo" required />
-          <SelectField label="Company" name="companyId" required options={companies.map((c) => ({ value: c.id, label: c.name }))} />
-          <Field label="Welding Progression" name="weldingProgression" placeholder="Downhill / Uphill" />
-          <Field label="Welding Process" name="weldingProcess" placeholder="SMAW" />
-          <Field label="Joint Version Group" name="jointVersionGroup" />
-          <Field label="Joint Type Group" name="jointTypeGroup" placeholder="Girth Weld" />
-          <Field label="Diameter From" name="diameterFrom" type="number" step="any" />
-          <Field label="Diameter To" name="diameterTo" type="number" step="any" />
-          <Field label="Wall Thickness From" name="wallThicknessFrom" type="number" step="any" />
-          <Field label="Wall Thickness To" name="wallThicknessTo" type="number" step="any" />
-          <Field label="Material Grade From" name="materialGradeFrom" placeholder="API 5L X70" />
-          <Field label="Material Grade To" name="materialGradeTo" placeholder="API 5L X70" />
-          <Field label="Pipe Vendor From" name="pipeVendorFrom" />
-          <Field label="Pipe Vendor To" name="pipeVendorTo" />
-          <Field label="Steel Mill Vendor From" name="steelMillVendorFrom" />
-          <Field label="Steel Mill Vendor To" name="steelMillVendorTo" />
-          <Field label="No Of Welders" name="noOfWelders" type="number" />
-          <div className="lg:col-span-4">
-            <button type="submit" className="btn-primary">
-              Save WPS
-            </button>
-          </div>
-        </form>
-      </details>
+      {canCreate ? (
+        <details className="card">
+          <summary className="section-title cursor-pointer select-none">+ Add WPS</summary>
+          <form action={createWpsAction} className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <Field label="WPS No" name="wpsNo" required />
+            <SelectField label="Company" name="companyId" required options={companies.map((c) => ({ value: c.id, label: c.name }))} />
+            <Field label="Welding Progression" name="weldingProgression" placeholder="Downhill / Uphill" />
+            <Field label="Welding Process" name="weldingProcess" placeholder="SMAW" />
+            <Field label="Joint Version Group" name="jointVersionGroup" />
+            <Field label="Joint Type Group" name="jointTypeGroup" placeholder="Girth Weld" />
+            <Field label="Diameter From" name="diameterFrom" type="number" step="any" />
+            <Field label="Diameter To" name="diameterTo" type="number" step="any" />
+            <Field label="Wall Thickness From" name="wallThicknessFrom" type="number" step="any" />
+            <Field label="Wall Thickness To" name="wallThicknessTo" type="number" step="any" />
+            <Field label="Material Grade From" name="materialGradeFrom" placeholder="API 5L X70" />
+            <Field label="Material Grade To" name="materialGradeTo" placeholder="API 5L X70" />
+            <Field label="Pipe Vendor From" name="pipeVendorFrom" />
+            <Field label="Pipe Vendor To" name="pipeVendorTo" />
+            <Field label="Steel Mill Vendor From" name="steelMillVendorFrom" />
+            <Field label="Steel Mill Vendor To" name="steelMillVendorTo" />
+            <Field label="No Of Welders" name="noOfWelders" type="number" />
+            <div className="lg:col-span-4">
+              <button type="submit" className="btn-primary">
+                Save WPS
+              </button>
+            </div>
+          </form>
+        </details>
+      ) : (
+        <p className="text-xs text-slate-500">Only Client and Contractor Admin users can add Master Data records.</p>
+      )}
 
       <div className="card overflow-x-auto">
         <table className="data-table">

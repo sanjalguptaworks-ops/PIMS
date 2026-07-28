@@ -1,10 +1,12 @@
 import { prisma } from "@pims/db";
+import { isAdminRole } from "@pims/auth";
 import { requireAuth } from "@/lib/require-auth";
 import { Field, SelectField } from "@/components/FormFields";
 import { createWelderQualificationAction } from "./actions";
 
 export default async function WelderQualificationPage() {
-  await requireAuth();
+  const session = await requireAuth();
+  const canCreate = isAdminRole(session.role);
 
   const [records, welders, wpsList] = await Promise.all([
     prisma.welderQualification.findMany({
@@ -24,19 +26,23 @@ export default async function WelderQualificationPage() {
       <h1 className="text-lg font-semibold">Welder Qualification</h1>
 
       <section className="space-y-2">
-        <details className="card">
-          <summary className="section-title cursor-pointer select-none">+ Add Qualification</summary>
-          <form action={createWelderQualificationAction} className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <SelectField label="Welder" name="welderId" required options={welderOptions} />
-            <SelectField label="WPS" name="wpsId" options={wpsOptions} />
-            <Field label="Qualified Date" name="qualifiedDate" type="date" />
-            <Field label="Expiry Date" name="expiryDate" type="date" />
-            <SelectField label="Result" name="result" options={[{ value: "Pass", label: "Pass" }, { value: "Fail", label: "Fail" }]} />
-            <div className="lg:col-span-4">
-              <button type="submit" className="btn-primary">Save Qualification</button>
-            </div>
-          </form>
-        </details>
+        {canCreate ? (
+          <details className="card">
+            <summary className="section-title cursor-pointer select-none">+ Add Qualification</summary>
+            <form action={createWelderQualificationAction} className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <SelectField label="Welder" name="welderId" required options={welderOptions} />
+              <SelectField label="WPS" name="wpsId" options={wpsOptions} />
+              <Field label="Qualified Date" name="qualifiedDate" type="date" />
+              <Field label="Expiry Date" name="expiryDate" type="date" />
+              <SelectField label="Result" name="result" options={[{ value: "Pass", label: "Pass" }, { value: "Fail", label: "Fail" }]} />
+              <div className="lg:col-span-4">
+                <button type="submit" className="btn-primary">Save Qualification</button>
+              </div>
+            </form>
+          </details>
+        ) : (
+          <p className="text-xs text-slate-500">Only Client and Contractor Admin users can add Master Data records.</p>
+        )}
 
         <div className="card overflow-x-auto">
           <table className="data-table">

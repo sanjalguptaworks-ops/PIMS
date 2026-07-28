@@ -2,10 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@pims/db";
-import { requireAuth } from "@/lib/require-auth";
+import { requireAdmin } from "@/lib/require-auth";
 
 export async function createWelderQualificationAction(formData: FormData) {
-  await requireAuth();
+  await requireAdmin();
   const wpsId = String(formData.get("wpsId") ?? "") || null;
   const qualifiedDate = String(formData.get("qualifiedDate") ?? "") || null;
   const expiryDate = String(formData.get("expiryDate") ?? "") || null;

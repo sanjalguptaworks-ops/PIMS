@@ -2,10 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@pims/db";
-import { requireAuth } from "@/lib/require-auth";
+import { requireAdmin } from "@/lib/require-auth";
 
 export async function createWpsWeldLayerAction(formData: FormData) {
-  await requireAuth();
+  await requireAdmin();
   await prisma.wPSWeldLayer.create({
     data: {
       wpsId: String(formData.get("wpsId")),

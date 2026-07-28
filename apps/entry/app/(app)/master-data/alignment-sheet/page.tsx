@@ -1,11 +1,13 @@
 import { prisma } from "@pims/db";
+import { isAdminRole } from "@pims/auth";
 import { requireAuth } from "@/lib/require-auth";
 import { requireSpread } from "@/lib/spread";
 import { Field } from "@/components/FormFields";
 import { createAlignmentSheetAction } from "./actions";
 
 export default async function AlignmentSheetPage() {
-  await requireAuth();
+  const session = await requireAuth();
+  const canCreate = isAdminRole(session.role);
   const spread = await requireSpread();
 
   const records = await prisma.alignmentSheet.findMany({
@@ -21,6 +23,7 @@ export default async function AlignmentSheetPage() {
       </div>
 
       <section className="space-y-2">
+        {canCreate ? (
         <details className="card">
           <summary className="section-title cursor-pointer select-none">+ Add Alignment Sheet</summary>
           <form action={createAlignmentSheetAction} className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -31,6 +34,9 @@ export default async function AlignmentSheetPage() {
             </div>
           </form>
         </details>
+        ) : (
+          <p className="text-xs text-slate-500">Only Client and Contractor Admin users can add Master Data records.</p>
+        )}
 
         <div className="card overflow-x-auto">
           <table className="data-table">

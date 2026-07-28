@@ -1,10 +1,12 @@
 import { prisma } from "@pims/db";
+import { isAdminRole } from "@pims/auth";
 import { requireAuth } from "@/lib/require-auth";
 import { Field, SelectField } from "@/components/FormFields";
 import { createSplicerAction } from "./actions";
 
 export default async function SplicerPage() {
-  await requireAuth();
+  const session = await requireAuth();
+  const canCreate = isAdminRole(session.role);
 
   const [records, companies] = await Promise.all([
     prisma.splicer.findMany({ include: { company: true }, orderBy: { name: "asc" } }),
@@ -17,6 +19,7 @@ export default async function SplicerPage() {
       <h1 className="text-lg font-semibold">Splicer</h1>
 
       <section className="space-y-2">
+        {canCreate ? (
         <details className="card">
           <summary className="section-title cursor-pointer select-none">+ Add Splicer</summary>
           <form action={createSplicerAction} className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -27,6 +30,9 @@ export default async function SplicerPage() {
             </div>
           </form>
         </details>
+        ) : (
+          <p className="text-xs text-slate-500">Only Client and Contractor Admin users can add Master Data records.</p>
+        )}
 
         <div className="card overflow-x-auto">
           <table className="data-table">
