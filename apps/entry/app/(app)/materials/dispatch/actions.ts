@@ -10,7 +10,9 @@ export async function createDispatchRegisterAction(formData: FormData) {
   const spread = await requireSpread();
 
   const items = JSON.parse(String(formData.get("itemsJson") ?? "[]")) as Record<string, string>[];
+  const signatoryIds = JSON.parse(String(formData.get("signatoryIdsJson") ?? "[]")) as string[];
   const issueDate = String(formData.get("issueDate") ?? "");
+  const inspectorId = String(formData.get("inspectorId") ?? "") || null;
 
   await prisma.materialDispatchRegister.create({
     data: {
@@ -18,7 +20,7 @@ export async function createDispatchRegisterAction(formData: FormData) {
       voucherNumber: String(formData.get("voucherNumber")),
       issueDate: issueDate ? new Date(issueDate) : null,
       element: String(formData.get("element") ?? "") || null,
-      inspectorName: String(formData.get("inspectorName") ?? "") || null,
+      inspectorId,
       vehicleNumber: String(formData.get("vehicleNumber") ?? "") || null,
       outboundConformance: String(formData.get("outboundConformance") ?? "") || null,
       stationFrom: String(formData.get("stationFrom") ?? "") || null,
@@ -33,6 +35,9 @@ export async function createDispatchRegisterAction(formData: FormData) {
           diameter: it.diameter ? Number(it.diameter) : null,
           remarks: it.remarks || null,
         })),
+      },
+      signatories: {
+        create: signatoryIds.map((signatoryId) => ({ signatoryId })),
       },
     },
   });

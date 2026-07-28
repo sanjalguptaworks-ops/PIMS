@@ -32,6 +32,9 @@ export async function uploadDispatchRegisterAction(_prev: UploadResult, formData
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
 
+  const inspectors = await prisma.inspector.findMany();
+  const inspectorIdByName = new Map(inspectors.map((i) => [i.name.toLowerCase(), i.id]));
+
   const errors: string[] = [];
   const byVoucher = new Map<string, { header: Record<string, unknown>; items: Record<string, unknown>[] }>();
 
@@ -51,6 +54,11 @@ export async function uploadDispatchRegisterAction(_prev: UploadResult, formData
   let skipped = 0;
   for (const [voucherNumber, { header, items }] of byVoucher) {
     const issueDate = str(header["IssueDate"] ?? header["Issue Date"]);
+    const inspectorName = str(header["InspectorName"] ?? header["Inspector Name"]);
+    const inspectorId = inspectorName ? inspectorIdByName.get(inspectorName.toLowerCase()) ?? null : null;
+    if (inspectorName && !inspectorId) {
+      errors.push(`Voucher ${voucherNumber}: inspector "${inspectorName}" not found in Manage Welders, left blank.`);
+    }
     try {
       await prisma.materialDispatchRegister.create({
         data: {
@@ -58,7 +66,7 @@ export async function uploadDispatchRegisterAction(_prev: UploadResult, formData
           voucherNumber,
           issueDate: issueDate ? new Date(issueDate) : null,
           element: str(header["Element"]),
-          inspectorName: str(header["InspectorName"] ?? header["Inspector Name"]),
+          inspectorId,
           vehicleNumber: str(header["VehicleNumber"] ?? header["Vehicle Number"]),
           outboundConformance: str(header["OutboundConformance"]),
           stationFrom: str(header["StationFrom"] ?? header["Station From"]),

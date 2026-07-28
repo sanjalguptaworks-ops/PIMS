@@ -25,6 +25,7 @@ const GROUPS: NavGroup[] = [
       { label: "Welder Qualification", href: "/master-data/welder-qualification" },
       { label: "Coater Qualification", href: "/master-data/coater-qualification" },
       { label: "Splicer", href: "/master-data/splicer" },
+      { label: "Signatory", href: "/master-data/signatory" },
       { label: "Electrode", href: "/master-data/electrode" },
       { label: "Electrode Batch Uploader", href: "/master-data/electrode-batch-uploader" },
       { label: "Vendor", href: "/master-data/vendor" },

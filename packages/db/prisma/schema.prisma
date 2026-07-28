@@ -29,6 +29,7 @@ model Company {
   coaters          CoaterQualification[]
   splicers         Splicer[]
   electrodes       Electrode[]
+  signatories      Signatory[]
   clientProjects   Project[]             @relation("ClientCompany")
 }
 
@@ -206,6 +207,8 @@ model Inspector {
   name             String
   certificationNo  String?
   active           Boolean  @default(true)
+
+  dispatchRegisters MaterialDispatchRegister[]
 }
 
 model CoaterQualification {
@@ -570,6 +573,18 @@ model NDTDefect {
 // Materials zone: Dispatch / Receipt / Damage Inspection / Return
 // ---------------------------------------------------------------------------
 
+model Signatory {
+  id            String   @id @default(cuid())
+  companyId     String
+  company       Company  @relation(fields: [companyId], references: [id])
+  name          String
+  designation   String?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  dispatchSignatures DispatchRegisterSignatory[]
+}
+
 model MaterialDispatchRegister {
   id                     String   @id @default(cuid())
   spreadId               String
@@ -577,7 +592,8 @@ model MaterialDispatchRegister {
   voucherNumber          String
   issueDate              DateTime?
   element                String?
-  inspectorName          String?
+  inspectorId            String?
+  inspector              Inspector? @relation(fields: [inspectorId], references: [id])
   vehicleNumber          String?
   outboundConformance    String?
   stationFrom            String?
@@ -585,9 +601,20 @@ model MaterialDispatchRegister {
   remarks                String?
   createdAt              DateTime @default(now())
 
-  items MaterialDispatchItem[]
+  items       MaterialDispatchItem[]
+  signatories DispatchRegisterSignatory[]
 
   @@unique([spreadId, voucherNumber])
+}
+
+model DispatchRegisterSignatory {
+  id          String                   @id @default(cuid())
+  registerId  String
+  register    MaterialDispatchRegister @relation(fields: [registerId], references: [id])
+  signatoryId String
+  signatory   Signatory                @relation(fields: [signatoryId], references: [id])
+
+  @@unique([registerId, signatoryId])
 }
 
 model MaterialDispatchItem {
