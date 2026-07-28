@@ -148,8 +148,26 @@ model WPS {
 
   welderQualifications WelderQualification[]
   welds                Weld[]
+  weldLayers           WPSWeldLayer[]
 
   @@unique([spreadId, wpsNo])
+}
+
+model WPSWeldLayer {
+  id                    String   @id @default(cuid())
+  wpsId                 String
+  wps                   WPS      @relation(fields: [wpsId], references: [id])
+  layerNumber           Int
+  layerName             String?
+  weldingProcess        String?
+  fillerMetalClass      String?
+  fillerMetalDiameter   String?
+  currentType           String?
+  travelSpeed           String?
+  remarks               String?
+  createdAt             DateTime @default(now())
+
+  @@unique([wpsId, layerNumber])
 }
 
 model Welder {
@@ -688,6 +706,9 @@ enum ActivityType {
   OFC_JOINT_PITS
   NITROGEN_PURGING
   HDD_CROSSING
+  CROSSING_DETAIL
+  CMS_ACTIVITY_UPLOAD
+  QC_ACTIVITY_UPLOAD
 }
 
 model ActivityRecord {
